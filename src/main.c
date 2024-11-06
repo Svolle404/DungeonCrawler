@@ -1,25 +1,20 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "library.h"
 
+#define DUNGEON_WIDTH 48
+#define DUNGEON_HEIGHT 16
+int dungeon[DUNGEON_WIDTH][DUNGEON_HEIGHT];
+
 int main(void) {
-    const unsigned int width = 5;
-    const unsigned int height = 5;
+    srand(time(0));
 
-    int dungeon[width][height];
+    generate_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, dungeon);
 
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            if (i == 1 && j == 1 || i == 1 && j == 3 || i == 3 && j == 1 || i == 3 && j == 3) {
-                dungeon[i][j] = 0;
-            } else {
-                dungeon[i][j] = 1;
-            }
-        }
-    }
+    draw_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, dungeon);
 
-    draw_dungeon(width, height, dungeon);
-
-    return 0;
+    while (1);
 }
