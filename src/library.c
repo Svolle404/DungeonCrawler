@@ -24,6 +24,9 @@ void generate_dungeon(const int width, const int height, int dungeon[width][heig
 
     // Add random pools of water.
     add_pools(width, height, dungeon);
+
+    // Add chests.
+    add_chests(width, height, dungeon);
 }
 
 void add_border(const int width, const int height, int dungeon[width][height]) {
@@ -72,14 +75,94 @@ void add_rooms(const int width, const int height, int dungeon[width][height]) {
 void add_pools(const int width, const int height, int dungeon[width][height]) {
     const int number_of_pools = rand() % (MAXIMUM_NUMBER_OF_POOLS - MINIMUM_NUMBER_OF_POOLS + 1) + MINIMUM_NUMBER_OF_POOLS;
     for (int i = 0; i < number_of_pools; i++) {
-        const int pool_size = rand() % MAXIMUM_POOL_SIZE + 1;
-        const int pool_x = rand() % (width - pool_size - 1) + 1;
-        const int pool_y = rand() % (height - pool_size - 1) + 1;
-        for (int x = pool_x; x < pool_x + pool_size; x++) {
-            for (int y = pool_y; y < pool_y + pool_size; y++) {
+        const int pool_snake_length = rand() % 21 + 3;
+        const int pool_snake_diameter = rand() % MAXIMUM_POOL_SIZE + 1;
+        int pool_y = rand() % (height - pool_snake_diameter - 1) + 1;
+        int pool_x = rand() % (width - pool_snake_diameter - 1) + 1;
+
+        for (int l = 0; l < pool_snake_length; l++) {
+            const int direction = rand() % 8;
+            switch (direction) {
+                case 0:
+                    pool_y--;
+                    break;
+                case 1:
+                    pool_y--;
+                    pool_x++;
+                    break;
+                case 2:
+                    pool_x++;
+                    break;
+                case 3:
+                    pool_x++;
+                    pool_y++;
+                    break;
+                case 4:
+                    pool_y++;
+                    break;
+                case 5:
+                    pool_y++;
+                    pool_x--;
+                    break;
+                case 6:
+                    pool_x--;
+                    break;
+                case 7:
+                    pool_x--;
+                    pool_y--;
+                    break;
+                default:
+                    printf("Unknown pool direction!");
+                    exit(EXIT_FAILURE);
+                    break;
+            }
+        }
+
+        for (int x = pool_x; x < pool_x + pool_snake_diameter; x++) {
+            for (int y = pool_y; y < pool_y + pool_snake_diameter; y++) {
                 dungeon[x][y] = 2;
             }
         }
+    }
+}
+
+void add_chests(const int width, const int height, int dungeon[width][height]) {
+    const int number_of_chests = rand() % 6 + 3;
+    for (int i = 0; i < number_of_chests; i++) {
+        const int chest_x = rand() % (width - 2) + 1;
+        const int chest_y = rand() % (height - 2) + 1;
+        dungeon[chest_x][chest_y] = 3;
+    }
+}
+
+void spawn_entities(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
+    // Make all tiles empty.
+    clear_entities(width, height, entities);
+
+    // Add zombies.
+    add_zombies(width, height, entities, dungeon);
+}
+
+void clear_entities(const int width, const int height, int entities[width][height]) {
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            entities[i][j] = 0;
+        }
+    }
+}
+
+void add_zombies(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
+    const int number_of_zombies = rand() % 11 + 10;
+    for (int i = 0; i < number_of_zombies; i++) {
+        int zombie_x = 0;
+        int zombie_y = 0;
+
+        while (dungeon[zombie_x][zombie_y] != 0 || entities[zombie_x][zombie_y] != 0) {
+            zombie_x = rand() % (width - 2) + 1;
+            zombie_y = rand() % (height - 2) + 1;
+        }
+
+        entities[zombie_x][zombie_y] = 2;
     }
 }
 
@@ -88,16 +171,20 @@ void set_console_color(const int c) {
     SetConsoleTextAttribute(hConsole, c);
 }
 
-void draw_dungeon(const unsigned int width, const unsigned int height, int dungeon[width][height]) {
+void draw_dungeon(const unsigned int width, const unsigned int height, int entities[width][height], int dungeon[width][height]) {
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            draw_tiles(get_tile_type(j, i, width, height, dungeon));
+            if (entities[j][i] == 0) {
+                draw_tile(get_tile_type(j, i, width, height, dungeon));
+            } else {
+                draw_entity(j, i, width, height, entities);
+            }
         }
         printf("\n");
     }
 }
 
-void draw_tiles(const unsigned int tile) {
+void draw_tile(const unsigned int tile) {
     switch (tile) {
         case -1: // Empty tile.
             printf("%c", 250);
@@ -150,8 +237,11 @@ void draw_tiles(const unsigned int tile) {
         case 15:
             printf("%c", 206);
             break;
-        case 16: // Water
+        case 16: // Water.
             printf("%c", 247);
+            break;
+        case 17: // Chest.
+            printf("%c", 216);
             break;
         default:
             printf("Unknown wall type!");
@@ -195,5 +285,27 @@ int get_tile_type(const int x, const int y, const unsigned int width, const unsi
         return 16;
     }
 
+    // If the tile is a chest.
+    if (dungeon[x][y] == 3) {
+        set_console_color(0xce);
+        return 17;
+    }
+
     return type;
+}
+
+void draw_entity(const int x, const int y, const unsigned int width, const unsigned int height, int entities[width][height]) {
+    switch (entities[x][y]) {
+        case 1: // Player.
+            set_console_color(0x6d);
+            printf("%c", 232);
+            break;
+        case 2: // Zombie.
+            set_console_color(0x8a);
+            printf("%c", 234);
+            break;
+        default:
+            printf("Unknown entity type!");
+            exit(EXIT_FAILURE);
+    }
 }
