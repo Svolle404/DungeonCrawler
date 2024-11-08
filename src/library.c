@@ -1,11 +1,16 @@
 #include "library.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <tgmath.h>
 #include <windows.h>
 
-#define MINIMUM_NUMBER_OF_ROOMS 3
-#define MAXIMUM_NUMBER_OF_ROOMS 6
-#define MINIMUM_ROOM_WIDTH 3
+#define CHEST_DENSITY 200 // The lower the number, the more chests will be generated.
+#define ROOM_DENSITY 350 // The lower the number, the more rooms will be generated.
+#define WALL_DENSITY_PERCENTAGE 45 // For a low number, less wall tiles will be generated.
+
+#define MINIMUM_NUMBER_OF_ROOMS 20
+#define MAXIMUM_NUMBER_OF_ROOMS 20
+#define MINIMUM_ROOM_WIDTH 5
 #define MINIMUM_ROOM_HEIGHT 3
 
 #define MINIMUM_NUMBER_OF_POOLS 3
@@ -22,11 +27,17 @@ void generate_dungeon(const int width, const int height, int dungeon[width][heig
     // Add random rooms.
     add_rooms(width, height, dungeon);
 
+    // TODO FIX POOL GENERATION
     // Add random pools of water.
-    add_pools(width, height, dungeon);
+    // add_pools(width, height, dungeon);
 
     // Add chests.
     add_chests(width, height, dungeon);
+
+    // Create spawn room.
+    add_spawn_room(width, height, dungeon);
+
+    // Create exit.
 }
 
 void add_border(const int width, const int height, int dungeon[width][height]) {
@@ -44,7 +55,7 @@ void add_border(const int width, const int height, int dungeon[width][height]) {
 void add_walls(const int width, const int height, int dungeon[width][height]) {
     for (int i = 1; i < width - 1; i++) {
         for (int j = 1; j < height - 1; j++) {
-            if (rand() % 2 == 0) {
+            if (rand() % 100 > WALL_DENSITY_PERCENTAGE) {
                 dungeon[i][j] = 0;
             } else {
                 dungeon[i][j] = 1;
@@ -54,7 +65,8 @@ void add_walls(const int width, const int height, int dungeon[width][height]) {
 }
 
 void add_rooms(const int width, const int height, int dungeon[width][height]) {
-    const int number_of_rooms = rand() % (MAXIMUM_NUMBER_OF_ROOMS - MINIMUM_NUMBER_OF_ROOMS + 1) + MINIMUM_NUMBER_OF_ROOMS;
+    const int minimum_number_of_rooms = width * height / ROOM_DENSITY + 2;
+    const int number_of_rooms = rand() % minimum_number_of_rooms / 2 + minimum_number_of_rooms;
     for (int i = 0; i < number_of_rooms; i++) {
         const int room_width = rand() % 6 + MINIMUM_ROOM_WIDTH + 1;
         const int room_height = rand() % 6 + MINIMUM_ROOM_HEIGHT + 1;
@@ -127,12 +139,33 @@ void add_pools(const int width, const int height, int dungeon[width][height]) {
 }
 
 void add_chests(const int width, const int height, int dungeon[width][height]) {
-    const int number_of_chests = rand() % 6 + 3;
+    const int minimum_number_of_chests = width * height / CHEST_DENSITY + 2;
+    const int number_of_chests = rand() % minimum_number_of_chests / 2 + minimum_number_of_chests;
     for (int i = 0; i < number_of_chests; i++) {
         const int chest_x = rand() % (width - 2) + 1;
         const int chest_y = rand() % (height - 2) + 1;
         dungeon[chest_x][chest_y] = 3;
     }
+}
+
+void add_spawn_room(const int width, const int height, int dungeon[width][height]) {
+    const int spawn_room_x = rand() % (width - 8) + 1;
+    const int spawn_room_y = rand() % (height - 8) + 1;
+
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (i == 0 || j == 0 || i == 6 || j == 4) {
+                dungeon[spawn_room_x + i][spawn_room_y + j] = 4;
+            } else {
+                dungeon[spawn_room_x + i][spawn_room_y + j] = 0;
+            }
+        }
+    }
+
+    dungeon[spawn_room_x + 3][spawn_room_y] = 0;
+    dungeon[spawn_room_x][spawn_room_y + 2] = 0;
+    dungeon[spawn_room_x + 6][spawn_room_y + 2] = 0;
+    dungeon[spawn_room_x + 3][spawn_room_y + 4] = 0;
 }
 
 void spawn_entities(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
@@ -258,23 +291,27 @@ int get_tile_type(const int x, const int y, const unsigned int width, const unsi
         return -1;
     }
 
-    // If the tile is a normal wall.
-    if (dungeon[x][y] == 1) {
-        set_console_color(0x8f);
+    // If the tile is a type of wall.
+    if (dungeon[x][y] == 1 || dungeon[x][y] == 4) {
+        if (dungeon[x][y] == 1) {
+            set_console_color(0x8f);
+        } else {
+            set_console_color(0x80);
+        }
         // Check north tile.
-        if (y - 1 >= 0 && dungeon[x][y - 1] == 1) {
+        if (y - 1 >= 0 && dungeon[x][y - 1] == dungeon[x][y]) {
             type += 1;
         }
         // Check east.
-        if (x + 1 < width && dungeon[x + 1][y] == 1) {
+        if (x + 1 < width && dungeon[x + 1][y] == dungeon[x][y]) {
             type += 2;
         }
         // Check south.
-        if (y + 1 < height && dungeon[x][y + 1] == 1) {
+        if (y + 1 < height && dungeon[x][y + 1] == dungeon[x][y]) {
             type += 4;
         }
         // Check west.
-        if (x - 1 >= 0 && dungeon[x - 1][y] == 1) {
+        if (x - 1 >= 0 && dungeon[x - 1][y] == dungeon[x][y]) {
             type += 8;
         }
     }

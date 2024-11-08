@@ -13,6 +13,8 @@ void add_pools(int width, int height, int dungeon[width][height]);
 
 void add_chests(int width, int height, int dungeon[width][height]);
 
+void add_spawn_room(int width, int height, int dungeon[width][height]);
+
 void spawn_entities(int width, int height, int entities[width][height], int dungeon[width][height]);
 
 void clear_entities(int width, int height, int entities[width][height]);
