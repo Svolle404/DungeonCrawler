@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tgmath.h>
+#include <time.h>
 #include <windows.h>
 
 #define CHEST_DENSITY 200 // The lower the number, the more chests will be generated.
@@ -15,9 +16,85 @@
 
 #define MINIMUM_NUMBER_OF_POOLS 3
 #define MAXIMUM_NUMBER_OF_POOLS 8
+
 #define MAXIMUM_POOL_SIZE 3
 
-void generate_dungeon(const int width, const int height, int dungeon[width][height]) {
+int player_x = 0;
+int player_y = 0;
+
+HANDLE hstdin;
+DWORD mode;
+
+///// GAME /////
+
+void console_settings() {
+    hstdin = GetStdHandle(STD_INPUT_HANDLE);
+
+    GetConsoleMode(hstdin, &mode);
+    SetConsoleMode(hstdin, mode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT));
+}
+
+void get_user_input(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
+    char input = getchar();
+    input = tolower(input);
+
+    switch (input) {
+        case 'w':
+            if (player_y > 0 && entities[player_x][player_y - 1] == 0 && dungeon[player_x][player_y - 1] == 0) {
+                entities[player_x][player_y] = 0;
+                entities[player_x][player_y - 1] = 1;
+                player_y--;
+            }
+            break;
+        case 'a':
+            if (player_x > 0 && entities[player_x - 1][player_y] == 0 && dungeon[player_x - 1][player_y] == 0) {
+                entities[player_x][player_y] = 0;
+                entities[player_x - 1][player_y] = 1;
+                player_x--;
+            }
+            break;
+        case 's':
+            if (player_y < height && entities[player_x][player_y + 1] == 0 && dungeon[player_x][player_y + 1] == 0) {
+                entities[player_x][player_y] = 0;
+                entities[player_x][player_y + 1] = 1;
+                player_y++;
+            }
+            break;
+        case 'd':
+            if (player_x < width && entities[player_x + 1][player_y] == 0 && dungeon[player_x + 1][player_y] == 0) {
+                entities[player_x][player_y] = 0;
+                entities[player_x + 1][player_y] = 1;
+                player_x++;
+            }
+            break;
+        case 0:
+            break;
+        case 13:
+            break;
+        default:
+            printf("Invalid movement input!");
+            exit(EXIT_FAILURE);
+    }
+}
+
+void set_console_color(const int c) {
+    const HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, c);
+}
+
+void delay(const int number_of_milli_seconds) {
+    const clock_t start_time = clock();
+
+    while (clock() < start_time + number_of_milli_seconds);
+}
+
+void update_game(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
+    update_zombies(width, height, entities, dungeon);
+}
+
+///// DUNGEON GENERATION /////
+
+void generate_dungeon(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
     // Create a border.
     add_border(width, height, dungeon);
 
@@ -150,7 +227,7 @@ void add_chests(const int width, const int height, int dungeon[width][height]) {
 
 void add_spawn_room(const int width, const int height, int dungeon[width][height]) {
     const int spawn_room_x = rand() % (width - 8) + 1;
-    const int spawn_room_y = rand() % (height - 8) + 1;
+    const int spawn_room_y = rand() % (height - 6) + 1;
 
     for (int i = 0; i < 7; i++) {
         for (int j = 0; j < 5; j++) {
@@ -166,11 +243,19 @@ void add_spawn_room(const int width, const int height, int dungeon[width][height
     dungeon[spawn_room_x][spawn_room_y + 2] = 0;
     dungeon[spawn_room_x + 6][spawn_room_y + 2] = 0;
     dungeon[spawn_room_x + 3][spawn_room_y + 4] = 0;
+
+    player_x = spawn_room_x + 3;
+    player_y = spawn_room_y + 2;
 }
+
+///// ENTITIES /////
 
 void spawn_entities(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
     // Make all tiles empty.
     clear_entities(width, height, entities);
+
+    // Add player spawn.
+    entities[player_x][player_y] = 1;
 
     // Add zombies.
     add_zombies(width, height, entities, dungeon);
@@ -199,10 +284,60 @@ void add_zombies(const int width, const int height, int entities[width][height],
     }
 }
 
-void set_console_color(const int c) {
-    const HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, c);
+void update_zombies(const int width, const int height, int entities[width][height], int dungeon[width][height]) {
+    int new_entities[width][height];
+
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            new_entities[i][j] = entities[i][j];
+        }
+    }
+
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            if (entities[i][j] == 2) {
+                const int movement_direction = rand() % 4;
+                switch (movement_direction) {
+                    case 0:
+                        if (j > 0 && new_entities[i][j - 1] == 0 && entities[i][j - 1] == 0 && dungeon[i][j - 1] == 0) {
+                            new_entities[i][j] = 0;
+                            new_entities[i][j - 1] = 2;
+                        }
+                        break;
+                    case 1:
+                        if (i < width && new_entities[i + 1][j] == 0 && entities[i + 1][j] == 0 && dungeon[i + 1][j] == 0) {
+                            new_entities[i][j] = 0;
+                            new_entities[i + 1][j] = 2;
+                        }
+                        break;
+                    case 2:
+                        if (j < height && new_entities[i][j + 1] == 0 && entities[i][j + 1] == 0 && dungeon[i][j + 1] == 0) {
+                            new_entities[i][j] = 0;
+                            new_entities[i][j + 1] = 2;
+                        }
+                        break;
+                    case 3:
+                        if (i > 0 && new_entities[i - 1][j] == 0 && entities[i - 1][j] == 0 && dungeon[i - 1][j] == 0) {
+                            new_entities[i][j] = 0;
+                            new_entities[i - 1][j] = 2;
+                        }
+                        break;
+                    default:
+                        printf("Unknown movement direction!");
+                        exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            entities[i][j] = new_entities[i][j];
+        }
+    }
 }
+
+///// THE VISUALS /////
 
 void draw_dungeon(const unsigned int width, const unsigned int height, int entities[width][height], int dungeon[width][height]) {
     for (int i = 0; i < height; i++) {
@@ -215,12 +350,14 @@ void draw_dungeon(const unsigned int width, const unsigned int height, int entit
         }
         printf("\n");
     }
+    set_console_color(0x0f);
 }
 
 void draw_tile(const unsigned int tile) {
     switch (tile) {
         case -1: // Empty tile.
-            printf("%c", 250);
+            //printf("%c", 250);
+            printf(" ");
             break;
         case 0:
             printf("%c", 215);
@@ -324,7 +461,7 @@ int get_tile_type(const int x, const int y, const unsigned int width, const unsi
 
     // If the tile is a chest.
     if (dungeon[x][y] == 3) {
-        set_console_color(0xce);
+        set_console_color(0x4e);
         return 17;
     }
 
@@ -334,12 +471,12 @@ int get_tile_type(const int x, const int y, const unsigned int width, const unsi
 void draw_entity(const int x, const int y, const unsigned int width, const unsigned int height, int entities[width][height]) {
     switch (entities[x][y]) {
         case 1: // Player.
-            set_console_color(0x6d);
-            printf("%c", 232);
+            set_console_color(0x0f);
+            printf("%c", 157);
             break;
         case 2: // Zombie.
-            set_console_color(0x8a);
-            printf("%c", 234);
+            set_console_color(0x20);
+            printf("\"");
             break;
         default:
             printf("Unknown entity type!");

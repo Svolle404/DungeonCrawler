@@ -5,18 +5,22 @@
 
 #include "library.h"
 
-#define DUNGEON_WIDTH 48
-#define DUNGEON_HEIGHT 16
+#define DUNGEON_WIDTH 24
+#define DUNGEON_HEIGHT 8
 int dungeon[DUNGEON_WIDTH][DUNGEON_HEIGHT];
 int entities[DUNGEON_WIDTH][DUNGEON_HEIGHT];
 
 int main(void) {
     srand(time(0));
 
-    generate_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, dungeon);
+    generate_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
     spawn_entities(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
 
-    draw_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
-
-    while (1);
+    while (1) {
+        system("cls");
+        draw_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
+        console_settings();
+        get_user_input(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
+        update_game(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
+    }
 }
