@@ -5,8 +5,8 @@
 
 #include "library.h"
 
-#define DUNGEON_WIDTH 24
-#define DUNGEON_HEIGHT 8
+#define DUNGEON_WIDTH 48
+#define DUNGEON_HEIGHT 16
 int dungeon[DUNGEON_WIDTH][DUNGEON_HEIGHT];
 int entities[DUNGEON_WIDTH][DUNGEON_HEIGHT];
 
@@ -17,7 +17,7 @@ int main(void) {
     spawn_entities(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
 
     while (1) {
-        system("cls");
+        printf("\033[H");
         draw_dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
         console_settings();
         get_user_input(DUNGEON_WIDTH, DUNGEON_HEIGHT, entities, dungeon);
